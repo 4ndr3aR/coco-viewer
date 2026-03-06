@@ -40,15 +40,20 @@ class Data:
         self.instances = instances
         self.images = ImageList(images)  # NOTE: image list is based on annotations file
         self.categories = categories  # Dataset categories
+        print(f'Parsed {len(self.images)} images and {len(self.instances["images"])} annotations in {len(self.categories)} categories.')
 
         # Prepare the very first image
         self.current_image = self.images.next()  # Set the first image as current
 
-    def prepare_image(self, object_based_coloring: bool = False):
+    def prepare_image(self, object_based_coloring: bool = False, debug=False):
         """Prepares image path, objects, colors."""
         # TODO: predicted bboxes drawing (from models)
         img_id, img_name = self.current_image
+        if debug:
+            print(f'Preparing {img_name}...')
         full_path = os.path.join(self.image_dir, img_name)
+        if debug:
+            print(f'Loading {full_path}...')
 
         # Get objects and category ids
         objects = [obj for obj in self.instances["annotations"] if obj["image_id"] == img_id]
@@ -180,7 +185,12 @@ def draw_bboxes(draw, objects, labels, obj_categories, ignore, width, label_size
                     # TODO: Implement notification message as popup window
                     font = ImageFont.load_default()
 
-                tw, th = draw.textsize(text, font)
+                # Deprecated
+                # https://stackoverflow.com/questions/77038132/python-pillow-pil-doesnt-recognize-the-attribute-textsize-of-the-object-imag
+                #tw, th = draw.textsize(text, font)
+                text_bbox = draw.textbbox((0, 0), text, font=font)
+                tw, th = text_bbox[2] - text_bbox[0], text_bbox[3] - text_bbox[1]
+
                 tx0 = b[0]
                 ty0 = b[1] - th
 
@@ -267,6 +277,10 @@ class ImageList:
             self.n -= 1
             current_image = self.image_list[self.n]
         return current_image
+
+    def __len__(self):
+        """Returns the number of images in the list."""
+        return self.max
 
 
 class ImagePanel(ttk.Frame):
